@@ -121,12 +121,15 @@ if __name__ == "__main__":
     camera_poses = poses_c2w_batch[0]
     print(output_dict.keys())
     print(output_dict["preds"][0].keys())
-    save_dir = "colmap_output"
+    save_dir_raw = "raw"
+    save_dir = "processed"
     os.makedirs(save_dir, exist_ok=True)
+    save_cameras_txt(output_dict["views"], estimated_focals, save_dir_raw)
+    save_images_txt(output_dict["views"], camera_poses, save_dir_raw)
+    save_points3D_txt(output_dict["preds"], output_dict["views"], confidence, save_dir_raw)
+
     save_cameras_txt(output_dict["views"], estimated_focals, save_dir)
     save_images_txt(output_dict["views"], camera_poses, save_dir)
-    # save_points3D_txt(output_dict["preds"], output_dict["views"], confidence, save_dir)
-
     pcds = inference_to_pcds(output_dict["preds"], output_dict["views"], conf_threshold=confidence, debug=True)
     proccessed_pcds = downsample_per_frame(pcds, voxel_size=0.01)
     merged_pcd = merge_pointclouds(proccessed_pcds)
