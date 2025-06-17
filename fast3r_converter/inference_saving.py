@@ -92,7 +92,10 @@ def save_points3D_txt(preds, views, confidence, save_dir):
                 point_id += 1
 
 if __name__ == "__main__":
-    model = Fast3R.from_pretrained("models/fast3r")
+    try:
+        model = Fast3R.from_pretrained("models/fast3r")
+    except:
+        model = Fast3R.from_pretrained("jedyang97/Fast3R_ViT_Large_512")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     lit_module = MultiViewDUSt3RLitModule.load_for_inference(model)
@@ -124,6 +127,7 @@ if __name__ == "__main__":
     save_dir_raw = "raw"
     save_dir = "processed"
     os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(save_dir_raw, exist_ok=True)
     save_cameras_txt(output_dict["views"], estimated_focals, save_dir_raw)
     save_images_txt(output_dict["views"], camera_poses, save_dir_raw)
     save_points3D_txt(output_dict["preds"], output_dict["views"], confidence, save_dir_raw)
@@ -131,6 +135,6 @@ if __name__ == "__main__":
     save_cameras_txt(output_dict["views"], estimated_focals, save_dir)
     save_images_txt(output_dict["views"], camera_poses, save_dir)
     pcds = inference_to_pcds(output_dict["preds"], output_dict["views"], conf_threshold=confidence, debug=True)
-    proccessed_pcds = downsample_per_frame(pcds, voxel_size=0.01)
-    merged_pcd = merge_pointclouds(proccessed_pcds)
-    save_points3D(merged_pcd, save_dir)
+    merged_pcd = {0: merge_pointclouds(pcds)}
+    proccessed_pcd = downsample_per_frame(merged_pcd, voxel_size=0.02)
+    save_points3D(proccessed_pcd[0], save_dir)
