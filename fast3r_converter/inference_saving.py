@@ -41,7 +41,7 @@ def save_images_txt(views, camera_poses, save_dir):
         f.write("#   POINTS2D[] as (X, Y, POINT3D_ID)\n")
 
         for img_id, (view, pose) in enumerate(zip(views, camera_poses), start=1):
-            if max_conf[img_id] < CONF_THRESHOLD:
+            if max_confs[img_id] < CONF_THRESHOLD:
                 continue
             R_c2w = pose[:3, :3]
             t_c2w = pose[:3, 3]
@@ -70,7 +70,7 @@ def save_points3D_txt(preds, views, confidence, save_dir):
         keep_frac = 1.0 - confidence
 
         for i in range(len(preds)):
-            if max_conf[i] < CONF_THRESHOLD:
+            if max_confs[i] < CONF_THRESHOLD:
                 continue
             pts3d = preds[i]["pts3d_local_aligned_to_global"].cpu().numpy()
             confidences = preds[i]["conf"].cpu().numpy()
@@ -108,6 +108,7 @@ def get_confidence_per_view(preds):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Inference and save results from Fast3R model.")
     parser.add_argument("--input", "-i", type=str, help="Path to the input directory containing images.", default="data")
+    parser.add_argument("--raw", "-r", action="store_true", help="Save raw results without processing.", default=False)
     args = parser.parse_args()
     try:
         model = Fast3R.from_pretrained("models/fast3r")
@@ -156,23 +157,23 @@ if __name__ == "__main__":
     print(f"Camera poses estimated in {pose_end - pose_start:.2f} seconds")
 
     save_start = time.time()
-    
-# here test
-    max_conf = get_confidence_per_view(output_dict["preds"])
-    print(f"Max confidences per view: {max_conf}")
-# here end test
+
+    max_confs = get_confidence_per_view(output_dict["preds"])
+
     print("Saving results...")
     save_dir_raw = "raw"
     save_dir = "processed"
 
     os.makedirs(save_dir, exist_ok=True)
-    os.makedirs(save_dir_raw, exist_ok=True)
-    save_cameras_txt(output_dict["views"], estimated_focals, save_dir_raw)
-    save_images_txt(output_dict["views"], camera_poses, save_dir_raw)
-    save_points3D_txt(output_dict["preds"], output_dict["views"], confidence, save_dir_raw)
-    save_raw_end = time.time()
-    print(f"Results saved in {save_dir_raw} in {save_raw_end - save_start:.2f} seconds")
+    if args.raw:
+        os.makedirs(save_dir_raw, exist_ok=True)
+        save_cameras_txt(output_dict["views"], estimated_focals, save_dir_raw)
+        save_images_txt(output_dict["views"], camera_poses, save_dir_raw)
+        save_points3D_txt(output_dict["preds"], output_dict["views"], confidence, save_dir_raw)
+        save_raw_end = time.time()
+        print(f"Results saved in {save_dir_raw} in {save_raw_end - save_start:.2f} seconds")
 
+    save_start = time.time()
     save_cameras_txt(output_dict["views"], estimated_focals, save_dir)
     save_images_txt(output_dict["views"], camera_poses, save_dir)
     pcds = inference_to_pcds(output_dict["preds"], output_dict["views"], conf_threshold=confidence, debug=True)
@@ -180,4 +181,4 @@ if __name__ == "__main__":
     proccessed_pcd = downsample_per_frame(merged_pcd, voxel_size=0.02)
     save_points3D(proccessed_pcd[0], save_dir)
     save_end = time.time()
-    print(f"Processed results saved in {save_dir} in {save_end - save_raw_end:.2f} seconds")
+    print(f"Processed results saved in {save_dir} in {save_end - save_start:.2f} seconds")
