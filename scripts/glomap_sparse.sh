@@ -36,8 +36,8 @@ glomap mapper \
 echo "[INFO] Converting model to PLY..."
 colmap model_converter \
     --input_path sparse/0 \
-    --output_path sparse/0 \
+    --output_path points3D.ply \
     --output_type PLY
 
-echo "[DONE] GLOMAP sparse reconstruction complete. Output saved to $PROJECT_NAME/sparse/"
+echo "[DONE] GLOMAP sparse reconstruction complete. Output saved to $PROJECT_NAME/points3D.ply"
 echo "[INFO] Total time taken: $SECONDS seconds"
