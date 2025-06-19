@@ -8,6 +8,7 @@ fi
 INPUT_IMAGES=$(realpath "$1")
 PROJECT_NAME=$(basename "$INPUT_IMAGES")_glomap
 mkdir -p "$PROJECT_NAME"/{images,sparse}
+mkdir -p "$PROJECT_NAME/sparse/0"
 
 cp "$INPUT_IMAGES"/* "$PROJECT_NAME/images/"
 
@@ -32,6 +33,11 @@ glomap mapper \
     --GlobalPositioning.use_gpu 1 \
     --BundleAdjustment.use_gpu 1
 
+echo "[INFO] Converting model to PLY..."
+colmap model_converter \
+    --input_path sparse/0 \
+    --output_path sparse/0 \
+    --output_type PLY
 
 echo "[DONE] GLOMAP sparse reconstruction complete. Output saved to $PROJECT_NAME/sparse/"
 echo "[INFO] Total time taken: $SECONDS seconds"
