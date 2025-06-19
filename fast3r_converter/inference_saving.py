@@ -1,6 +1,8 @@
 import torch
 import os
 import cv2
+import argparse
+import time
 import numpy as np
 from fast3r.dust3r.utils.image import load_images
 from fast3r.dust3r.inference_multiview import inference
@@ -10,6 +12,7 @@ from scipy.spatial.transform import Rotation as R
 
 from postproccess import *
 
+CONF_THRESHOLD = 2
 
 def save_cameras_txt(views, estimated_focals, save_dir):
     width, height = views[0]["img"].shape[3], views[0]["img"].shape[2]
@@ -38,6 +41,8 @@ def save_images_txt(views, camera_poses, save_dir):
         f.write("#   POINTS2D[] as (X, Y, POINT3D_ID)\n")
 
         for img_id, (view, pose) in enumerate(zip(views, camera_poses), start=1):
+            if max_conf[img_id] < CONF_THRESHOLD:
+                continue
             R_c2w = pose[:3, :3]
             t_c2w = pose[:3, 3]
 
@@ -65,6 +70,8 @@ def save_points3D_txt(preds, views, confidence, save_dir):
         keep_frac = 1.0 - confidence
 
         for i in range(len(preds)):
+            if max_conf[i] < CONF_THRESHOLD:
+                continue
             pts3d = preds[i]["pts3d_local_aligned_to_global"].cpu().numpy()
             confidences = preds[i]["conf"].cpu().numpy()
             colors = views[i]["img"].cpu().numpy()
@@ -91,17 +98,34 @@ def save_points3D_txt(preds, views, confidence, save_dir):
                 f.write(f"{point_id} {x} {y} {z} {int(r)} {int(g)} {int(b)} {error} \n")
                 point_id += 1
 
+def get_confidence_per_view(preds):
+    confidences = []
+    for i in range(len(preds)):
+        conf = np.max(preds[i]["conf"].cpu().numpy())
+        confidences.append(conf)
+    return confidences
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Inference and save results from Fast3R model.")
+    parser.add_argument("--input", "-i", type=str, help="Path to the input directory containing images.", default="data")
+    args = parser.parse_args()
     try:
         model = Fast3R.from_pretrained("models/fast3r")
     except:
         model = Fast3R.from_pretrained("jedyang97/Fast3R_ViT_Large_512")
+
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     lit_module = MultiViewDUSt3RLitModule.load_for_inference(model)
     model.eval()
     lit_module.eval()
-    images = load_images("data", size=512)
+
+    load_start = time.time()
+    images = load_images(args.input, size=512)
+    load_end = time.time()
+    print(f"Images loaded in {load_end - load_start:.2f} seconds")
+
     output_dict, profiling_info = inference(
         images,
         model,
@@ -110,27 +134,44 @@ if __name__ == "__main__":
         verbose=True,
         profiling=True,
     )
-    confidence = 0.3
+    align_start = time.time()
+    confidence = 0.7
     lit_module.align_local_pts3d_to_global(
         preds=output_dict["preds"],
         views=output_dict["views"],
         min_conf_thr_percentile=confidence,
     )
+    align_end = time.time()
+    print(f"Local points aligned to global in {align_end - align_start:.2f} seconds")
+
+    pose_start = time.time()
+    print("Estimating camera poses...")
     poses_c2w_batch, estimated_focals = MultiViewDUSt3RLitModule.estimate_camera_poses(
         output_dict["preds"],
         niter_PnP=100,
         focal_length_estimation_method="first_view_from_global_head",
     )
     camera_poses = poses_c2w_batch[0]
-    print(output_dict.keys())
-    print(output_dict["preds"][0].keys())
+    pose_end = time.time()
+    print(f"Camera poses estimated in {pose_end - pose_start:.2f} seconds")
+
+    save_start = time.time()
+    
+# here test
+    max_conf = get_confidence_per_view(output_dict["preds"])
+    print(f"Max confidences per view: {max_conf}")
+# here end test
+    print("Saving results...")
     save_dir_raw = "raw"
     save_dir = "processed"
+
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(save_dir_raw, exist_ok=True)
     save_cameras_txt(output_dict["views"], estimated_focals, save_dir_raw)
     save_images_txt(output_dict["views"], camera_poses, save_dir_raw)
     save_points3D_txt(output_dict["preds"], output_dict["views"], confidence, save_dir_raw)
+    save_raw_end = time.time()
+    print(f"Results saved in {save_dir_raw} in {save_raw_end - save_start:.2f} seconds")
 
     save_cameras_txt(output_dict["views"], estimated_focals, save_dir)
     save_images_txt(output_dict["views"], camera_poses, save_dir)
@@ -138,3 +179,5 @@ if __name__ == "__main__":
     merged_pcd = {0: merge_pointclouds(pcds)}
     proccessed_pcd = downsample_per_frame(merged_pcd, voxel_size=0.02)
     save_points3D(proccessed_pcd[0], save_dir)
+    save_end = time.time()
+    print(f"Processed results saved in {save_dir} in {save_end - save_raw_end:.2f} seconds")
