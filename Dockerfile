@@ -64,4 +64,5 @@ ENV PATH="/usr/local/bin:/colmap/bin:${PATH}"
 ENV PATH="/glomap/bin:${PATH}"
 
 RUN mkdir /workspace
+COPY scripts/ /workspace/scripts
 WORKDIR /workspace
