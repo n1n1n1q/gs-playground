@@ -6,7 +6,15 @@ if [ "$#" -ne 1 ]; then
 fi
 
 INPUT_IMAGES=$(realpath "$1")
-PROJECT_NAME=$(basename "$INPUT_IMAGES")_colmap
+BASE_NAME=$(basename "$INPUT_IMAGES")_colmap
+PROJECT_NAME="$BASE_NAME"
+i=1
+
+while [ -d "$PROJECT_NAME" ]; do
+    PROJECT_NAME="${BASE_NAME}_$i"
+    ((i++))
+done
+
 mkdir -p "$PROJECT_NAME"/{images,sparse}
 mkdir -p "$PROJECT_NAME/sparse/0"
 
