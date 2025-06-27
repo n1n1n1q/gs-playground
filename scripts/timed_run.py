@@ -1,4 +1,3 @@
-import os
 import time
 import argparse
 import subprocess
@@ -42,8 +41,15 @@ if __name__ == "__main__":
             results[data_dir] = results.get(data_dir, []) + [elapsed_time]
             print(f"[INFO] Elapsed time for run {i + 1}: {elapsed_time:.2f} seconds")
 
+    res = ""
     for data_dir, times in results.items():
-        print(f"[INFO] Summary for {data_dir}:")
-        print(f"[INFO]   Mean elapsed time: {mean(times):.2f} seconds")
-        print(f"[INFO]   Standard deviation: {std(times):.2f} seconds")
-        print(f"[INFO]   All elapsed times: {', '.join(f'{t:.2f}' for t in times)}")
+        tmp = ""
+        tmp += f"[INFO] Summary for {data_dir}:\n"
+        tmp += f"[INFO]   Mean elapsed time: {mean(times):.2f} seconds\n"
+        tmp += f"[INFO]   Standard deviation: {std(times):.2f} seconds\n"
+        tmp += f"[INFO]   All elapsed times: {', '.join(f'{t:.2f}' for t in times)}\n"
+        res += tmp
+        res += "\n"
+        print(tmp)
+    with open("timed_run_results.txt", "w") as f:
+        f.write(res)
