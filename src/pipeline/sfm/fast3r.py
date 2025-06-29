@@ -10,7 +10,7 @@ from src.camera.camera import Camera
 from src.view.camera_view import CameraView
 from src.utils.pointcloud import scale_pointcloud
 
-SCALING_FACTOR = 25.0
+SCALING_FACTOR = 29.4
 
 class Fast3RSfM:
     def __init__(self, output_dict):

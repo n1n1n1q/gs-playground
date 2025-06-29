@@ -10,10 +10,10 @@ from fast3r.models.fast3r import Fast3R
 from fast3r.models.multiview_dust3r_module import MultiViewDUSt3RLitModule
 from scipy.spatial.transform import Rotation as R
 
-from postproccess import *
+from src.legacy.fast3r_converter.postproccess import *
 
 CONF_THRESHOLD = 1
-SCALE = 25.0
+SCALE = 1
 
 def save_cameras_txt(views, estimated_focals, save_dir):
     width, height = views[0]["img"].shape[3], views[0]["img"].shape[2]

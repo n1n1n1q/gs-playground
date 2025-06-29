@@ -9,7 +9,7 @@ from fast3r.models.fast3r import Fast3R
 from fast3r.models.multiview_dust3r_module import MultiViewDUSt3RLitModule
 
 from src.pipeline.sfm.fast3r import Fast3RSfM
-from src.utils.io import save_cameras_txt, save_images_txt, save_points3D_txt
+from src.utils.io import write_cameras_txt, write_images_txt, write_points3D_txt
 
 
 if __name__ == "__main__":
@@ -47,13 +47,11 @@ if __name__ == "__main__":
         views=output_dict["views"],
         min_conf_thr_percentile=confidence,
     )
-    print(images)
+
     sfm = Fast3RSfM(output_dict)
 
-    sfm(conf_thr=confidence)
-
-    save_cameras_txt(sfm.cameras, "output")
-    save_images_txt(sfm.views, "output", save_new_images=True, conf_threshold=confidence)
-    save_points3D_txt(sfm.pcd, "output")
-
+    sfm(conf_thr=confidence, downsample=True, voxel_size=0.01)
+    write_cameras_txt(sfm.cameras, args.output)
+    write_images_txt(sfm.views, args.output, conf_threshold=confidence)
+    write_points3D_txt(sfm.pcd, args.output)
     # o3d.visualization.draw_geometries([sfm.pcd], window_name="Fast3R Point Cloud", width=800, height=600)
