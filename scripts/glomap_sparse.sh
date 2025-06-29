@@ -6,7 +6,15 @@ if [ "$#" -ne 1 ]; then
 fi
 
 INPUT_IMAGES=$(realpath "$1")
-PROJECT_NAME=$(basename "$INPUT_IMAGES")_glomap
+BASE_NAME=$(basename "$INPUT_IMAGES")_colmap
+PROJECT_NAME="$BASE_NAME"
+i=1
+
+while [ -d "$PROJECT_NAME" ]; do
+    PROJECT_NAME="${BASE_NAME}_$i"
+    ((i++))
+done
+
 mkdir -p "$PROJECT_NAME"/{distorted,sparse}
 mkdir -p "$PROJECT_NAME/sparse/0"
 mkdir -p "$PROJECT_NAME/distorted/images"
@@ -42,7 +50,6 @@ colmap image_undistorter \
     --input_path sparse/0 \
     --output_path . \
     --output_type COLMAP 
-mv sparse/0 distorted
 
 # echo "[INFO] Converting model to PLY..."
 # colmap model_converter \

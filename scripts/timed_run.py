@@ -1,6 +1,9 @@
 import time
 import argparse
 import subprocess
+from collections import defaultdict
+
+from tqdm import tqdm
 
 def mean(lst):
     return sum(lst) / len(lst) if lst else 0
@@ -13,12 +16,12 @@ def std(lst):
 
 def execute(command):
     result = subprocess.run([command], capture_output=True, text=True, shell=True)
-    if result.stderr:
-        print("[INFO] Error occured during command execution")
-        print(result.stderr)
-        print("[INFO] Command that failed:")
-        print(command)
-    return not bool(result.stderr) 
+    # if result.stderr:
+    #     print("[INFO] Error occured during command execution")
+    #     print(result.stderr)
+    #     print("[INFO] Command that failed:")
+    #     print(command)
+    # return not bool(result.stderr) 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a command repeatedly.")
@@ -27,19 +30,20 @@ if __name__ == "__main__":
     parser.add_argument("--times", type=int, default=1, help="Number of times to run the command.")
     args = parser.parse_args()
 
-    results = {}
-    for data_dir in args.data_dirs:
+
+    results = defaultdict(list)
+    for data_dir in tqdm(args.data_dirs):
         for i in range(args.times):
             start_time = time.time()
             command = f"{args.command} {data_dir}"
-            print(f"Running command: {command} (Run {i + 1}/{args.times})")
-            if not execute(command):
-                i -= 1
-                continue
+            # print(f"Running command: {command} (Run {i + 1}/{args.times})")
+            execute(command)
             end_time = time.time()
             elapsed_time = end_time - start_time
-            results[data_dir] = results.get(data_dir, []) + [elapsed_time]
-            print(f"[INFO] Elapsed time for run {i + 1}: {elapsed_time:.2f} seconds")
+            results[data_dir].append(elapsed_time)
+            # print(f"[INFO] Elapsed time for run {i + 1}: {elapsed_time:.2f} seconds")
+        print("[INFO] All commands executed successfully for {data_dir}.")
+        print(results[data_dir])
 
     res = ""
     for data_dir, times in results.items():
