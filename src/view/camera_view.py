@@ -13,9 +13,9 @@ class CameraView:
     Camera view class to hold image and camera parameters.
     """
     img_path: str
-    img: Optional[any] = None
-    camera_id: int
     confidence: float
+    img: Optional[any] = None
+    camera_id: int = 1
     extrinsics: np.ndarray = None
 
     def qvec(self) -> np.ndarray:
@@ -73,3 +73,10 @@ class CameraView:
             confidence=self.confidence,
             extrinsics=np.copy(self.extrinsics) if self.extrinsics is not None else None
         )
+    
+    def __repr__(self):
+        """
+        String representation of the CameraView instance.
+        """
+        return (f"CameraView(img_path={self.img_path}, confidence={self.confidence}, "
+                f"camera_id={self.camera_id}, extrinsics={self.extrinsics})")
