@@ -3,6 +3,7 @@ import numpy as np
 
 import argparse
 
+
 def estimate_scale(A, B):
     A_mean = A.mean(0)
     B_mean = B.mean(0)
@@ -14,13 +15,31 @@ def estimate_scale(A, B):
 
     return norm_B / norm_A
 
+
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Estimate scale between two point clouds.")
-    parser.add_argument("-p1", "--pointcloud1", type=str, default="faster.ply",)
-    parser.add_argument("-p2", "--pointcloud2", type=str, default="colmap.ply",)
-    parser.add_argument("-n", "--n_experiments", type=int, default=1000,
-                        help="Number of experiments to run for scale estimation.")
+    parser = argparse.ArgumentParser(
+        description="Estimate scale between two point clouds."
+    )
+    parser.add_argument(
+        "-p1",
+        "--pointcloud1",
+        type=str,
+        default="faster.ply",
+    )
+    parser.add_argument(
+        "-p2",
+        "--pointcloud2",
+        type=str,
+        default="colmap.ply",
+    )
+    parser.add_argument(
+        "-n",
+        "--n_experiments",
+        type=int,
+        default=1000,
+        help="Number of experiments to run for scale estimation.",
+    )
     args = parser.parse_args()
 
     ply1_init = o3d.t.io.read_point_cloud(args.pointcloud1, format="ply")
@@ -40,13 +59,13 @@ if __name__ == "__main__":
 
     cl, ind = ply2.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
     ply2 = ply2.select_by_index(ind)
-    
+
     scales = []
 
     for i in range(args.n_experiments):
         A = np.asarray(ply1.points)
         B = np.asarray(ply2.points)
-    
+
         A = A[np.random.choice(len(A), 1000, replace=False)]
         B = B[np.random.choice(len(B), 1000, replace=False)]
 
