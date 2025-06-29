@@ -12,7 +12,8 @@ from scipy.spatial.transform import Rotation as R
 
 from postproccess import *
 
-CONF_THRESHOLD = 2
+CONF_THRESHOLD = 1
+SCALE = 25.0
 
 def save_cameras_txt(views, estimated_focals, save_dir):
     width, height = views[0]["img"].shape[3], views[0]["img"].shape[2]
@@ -41,7 +42,8 @@ def save_images_txt(views, camera_poses, save_dir):
         f.write("#   POINTS2D[] as (X, Y, POINT3D_ID)\n")
 
         for img_id, (view, pose) in enumerate(zip(views, camera_poses), start=1):
-            if max_confs[img_id] < CONF_THRESHOLD:
+            if max_confs[img_id - 1] < CONF_THRESHOLD:
+                print(max_confs[img_id - 1], "is less than threshold, skipping image", img_id)
                 continue
             R_c2w = pose[:3, :3]
             t_c2w = pose[:3, 3]
@@ -55,10 +57,11 @@ def save_images_txt(views, camera_poses, save_dir):
             img_save_path = os.path.join(image_dir, img_filename)
             img = np.transpose(view["img"][0].cpu().numpy(), (1, 2, 0))
             img = ((img + 1) * 127.5).clip(0, 255).astype(np.uint8)
-            cv2.imwrite(img_save_path, img)
+            cv2.imwrite(img_save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
 
             f.write(f"{img_id} {' '.join(map(str, q_w2c))} {' '.join(map(str, t_w2c))} {camera_id} {img_filename}\n")
             f.write("\n")
+            print("FSFAFS")
 
 def save_points3D_txt(preds, views, confidence, save_dir):
     points_path = os.path.join(save_dir, "points3D.txt")
@@ -86,7 +89,7 @@ def save_points3D_txt(preds, views, confidence, save_dir):
             
             k = max(1, int(len(confidences_flat) * keep_frac))
             idx = np.argpartition(-confidences_flat, k - 1)[:k]
-            pts3d_filtered = pts3d_flat[idx]
+            pts3d_filtered = pts3d_flat[idx] * SCALE
             confidences_filtered = confidences_normalized[idx]
             colors_filtered = colors_flat[idx]
             
@@ -136,7 +139,7 @@ if __name__ == "__main__":
         profiling=True,
     )
     align_start = time.time()
-    confidence = 0.7
+    confidence = 0.1
     lit_module.align_local_pts3d_to_global(
         preds=output_dict["preds"],
         views=output_dict["views"],
@@ -153,13 +156,14 @@ if __name__ == "__main__":
         focal_length_estimation_method="first_view_from_global_head",
     )
     camera_poses = poses_c2w_batch[0]
+    camera_poses = [np.hstack((pose[:3, :3], pose[:3, 3:4] * SCALE)) for pose in camera_poses]
+
     pose_end = time.time()
     print(f"Camera poses estimated in {pose_end - pose_start:.2f} seconds")
 
     save_start = time.time()
 
     max_confs = get_confidence_per_view(output_dict["preds"])
-
     print("Saving results...")
     save_dir_raw = "raw"
     save_dir = "processed"
@@ -179,6 +183,7 @@ if __name__ == "__main__":
     pcds = inference_to_pcds(output_dict["preds"], output_dict["views"], conf_threshold=confidence, debug=True)
     merged_pcd = {0: merge_pointclouds(pcds)}
     proccessed_pcd = downsample_per_frame(merged_pcd, voxel_size=0.02)
+    proccessed_pcd[0].points = o3d.utility.Vector3dVector(np.asarray(proccessed_pcd[0].points) * SCALE)
     save_points3D(proccessed_pcd[0], save_dir)
     save_end = time.time()
     print(f"Processed results saved in {save_dir} in {save_end - save_start:.2f} seconds")
