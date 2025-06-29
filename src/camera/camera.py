@@ -1,8 +1,10 @@
 """
 Camera class
 """
+
 import numpy as np
 from dataclasses import dataclass
+
 
 @dataclass
 class Camera:
@@ -12,8 +14,7 @@ class Camera:
     height: int
     focal_length: float
 
-
-    def __imul__(self, num: float) -> 'Camera':
+    def __imul__(self, num: float) -> "Camera":
         """
         Scale the camera parameters in place by a given factor
         """
@@ -22,7 +23,7 @@ class Camera:
         self.focal_length = self.focal_length * num
         return self
 
-    def __mul__(self, num: float) -> 'Camera':
+    def __mul__(self, num: float) -> "Camera":
         """
         Scale the camera parameters by a given factor
         """
@@ -30,7 +31,7 @@ class Camera:
         new_camera *= num
         return new_camera
 
-    def __copy__(self):
+    def __copy__(self) -> "Camera":
         """
         Create a copy of the camera instance.
         """
@@ -40,5 +41,7 @@ class Camera:
             width=self.width,
             height=self.height,
             focal_length=self.focal_length,
-            extrinsics=np.copy(self.extrinsics) if self.extrinsics is not None else None
+            extrinsics=(
+                np.copy(self.extrinsics) if self.extrinsics is not None else None
+            ),
         )

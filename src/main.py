@@ -13,9 +13,23 @@ from src.utils.io import write_cameras_txt, write_images_txt, write_points3D_txt
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Inference and save results from Fast3R model.")
-    parser.add_argument("--input", "-i", type=str, help="Path to the input directory containing images.", default="data")
-    parser.add_argument("--output", "-o", type=str, help="Path to the output directory to save results.", default="output")
+    parser = argparse.ArgumentParser(
+        description="Inference and save results from Fast3R model."
+    )
+    parser.add_argument(
+        "--input",
+        "-i",
+        type=str,
+        help="Path to the input directory containing images.",
+        default="data",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        type=str,
+        help="Path to the output directory to save results.",
+        default="output",
+    )
     args = parser.parse_args()
 
     try:
@@ -30,7 +44,6 @@ if __name__ == "__main__":
     lit_module.eval()
 
     images = load_images(args.input, size=512)
-
 
     output_dict, profiling_info = inference(
         images,
